@@ -15,7 +15,7 @@ func init() {
 	r.HandleFunc("/get", handleGet()).Methods("GET")
 	r.HandleFunc("/post", handlePost()).Methods("POST")
 	r.HandleFunc("/put", handle("put")).Methods("PUT")
-	r.HandleFunc("/delete", handle("delete")).Methods("DELETE")
+	r.HandleFunc("/delete", handleDelete()).Methods("DELETE")
 
 	http.Handle("/", r)
 }
@@ -51,6 +51,19 @@ func handleGet() func(http.ResponseWriter, *http.Request) {
 		ctx := appengine.NewContext(r)
 		if err := utils.GetObject(ctx, &o); err != nil {
 			http.Error(w, err.Error(), 500)
+			return
+		}
+		utils.WriteJson(w, o)
+	}
+}
+
+func handleDelete() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var o PostData
+		ctx := appengine.NewContext(r)
+		if err := utils.DeleteObject(ctx, &o); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
 		}
 		utils.WriteJson(w, o)
 	}
