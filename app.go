@@ -12,10 +12,10 @@ func init() {
 
 	r.HandleFunc("/robots.txt", utils.WriteFile("robots.txt", "text/plain")).Methods("GET")
 
-	r.HandleFunc("/get", handleGet()).Methods("GET")
-	r.HandleFunc("/post", handlePost()).Methods("POST")
+	r.HandleFunc("/get", handleGet.Methods("GET")
+	r.HandleFunc("/post", handlePost.Methods("POST")
 	r.HandleFunc("/put", handle("put")).Methods("PUT")
-	r.HandleFunc("/delete", handleDelete()).Methods("DELETE")
+	r.HandleFunc("/delete", handleDelete.Methods("DELETE")
 
 	http.Handle("/", r)
 }
@@ -32,8 +32,7 @@ func (p *PostData) EntityType() string {
 	return "PostData"
 }
 
-func handlePost() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlePost(w http.ResponseWriter, r *http.Request) {
 		var o PostData
 		utils.ReadJson(w, r, &o)
 		ctx := appengine.NewContext(r)
@@ -42,11 +41,9 @@ func handlePost() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		utils.WriteJson(w, o)
-	}
 }
 
-func handleGet() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleGet(w http.ResponseWriter, r *http.Request) {
 		var o PostData
 		ctx := appengine.NewContext(r)
 		if err := utils.GetObject(ctx, &o); err != nil {
@@ -54,11 +51,9 @@ func handleGet() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		utils.WriteJson(w, o)
-	}
 }
 
-func handleDelete() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleDelete(w http.ResponseWriter, r *http.Request) {
 		var o PostData
 		ctx := appengine.NewContext(r)
 		if err := utils.DeleteObject(ctx, &o); err != nil {
@@ -66,7 +61,6 @@ func handleDelete() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		utils.WriteJson(w, o)
-	}
 }
 
 func handle(s string) func(http.ResponseWriter, *http.Request) {
