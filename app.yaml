@@ -7,8 +7,5 @@ skip_files:
 - ^(.*/)?.*\.DS_Store$
 
 handlers:
-- url: /static
-  static_dir: static/
-  expiration: 1m
 - url: /.*
   script: app.go
