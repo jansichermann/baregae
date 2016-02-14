@@ -3,6 +3,9 @@ package utils
 import (
 	"appengine"
 	"appengine/urlfetch"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
 const gaEndpoint = "https://ssl.google-analytics.com/collect"
