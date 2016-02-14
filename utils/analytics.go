@@ -2,6 +2,7 @@ package utils
 
 import (
 	"appengine"
+	"appengine/delay"
 	"appengine/urlfetch"
 	"net/http"
 	"net/url"
@@ -10,8 +11,9 @@ import (
 
 const gaEndpoint = "https://ssl.google-analytics.com/collect"
 
-func GoogleAnalyticsPageViewMap(clientId, userId, userAgent, referer, documentPath string) map[string]string {
+func GoogleAnalyticsPageViewMap(projectId, clientId, userId, userAgent, referer, documentPath string) map[string]string {
 	params := make(map[string]string)
+	params["tid"] = projectId
 	params["cid"] = clientId
 	params["uid"] = userId
 	params["ua"] = userAgent
@@ -22,11 +24,10 @@ func GoogleAnalyticsPageViewMap(clientId, userId, userAgent, referer, documentPa
 	return params
 }
 
-func SendGoogleAnalyticsTrackingData(ctx appengine.Context, projectId string, params map[string]string) {
+func SendGoogleAnalyticsTrackingData(ctx appengine.Context, params map[string]string) {
 	client := urlfetch.Client(ctx)
 
 	values := url.Values{}
-	values.Set("tid", projectId)
 	for k, v := range params {
 		values.Set(k, v)
 	}
@@ -39,4 +40,16 @@ func SendGoogleAnalyticsTrackingData(ctx appengine.Context, projectId string, pa
 		ctx.Errorf("%s", err.Error())
 		return
 	}
+}
+
+var delayedTracking = delay.Func("utils.analytics.delayedTrack", SendGoogleAnalyticsTrackingData)
+
+func TrackPage(r *http.Request, clientId, userId, projectId string) {
+	params := GoogleAnalyticsPageViewMap(projectId, clientId, userId, r.UserAgent(), r.Referer(), r.URL.Path)
+	SendGoogleAnalyticsTrackingData(appengine.NewContext(r), params)
+}
+
+func TrackPageDelayed(r *http.Request, clientId, userId, projectId string) {
+	params := GoogleAnalyticsPageViewMap(projectId, clientId, userId, r.UserAgent(), r.Referer(), r.URL.Path)
+	delayedTracking.Call(appengine.NewContext(r), params)
 }
