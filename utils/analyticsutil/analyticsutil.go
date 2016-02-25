@@ -1,4 +1,4 @@
-package utils
+package analyticsutil
 
 import (
 	"appengine"

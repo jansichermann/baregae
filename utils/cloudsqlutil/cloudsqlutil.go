@@ -1,7 +1,6 @@
-package utils
+package cloudsqlutil
 
 import (
-	"appengine"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"strings"
@@ -16,7 +15,7 @@ func CloudSqlDatabase(user, password, projectId, cloudsqlInstance, database stri
 	return sql.Open("mysql", user+":"+password+"@cloudsql("+projectId+":"+cloudsqlInstance+")/"+database)
 }
 
-func InsertObject(db *sql.DB, obj SqlObject) error {
+func CloudSqlInsertObject(db *sql.DB, obj SqlObject) error {
 	insertParameters := obj.InsertParameters()
 	parameterNames := make([]string, 0, len(insertParameters))
 	parameterValues := make([]interface{}, 0, len(insertParameters))
@@ -33,20 +32,25 @@ func InsertObject(db *sql.DB, obj SqlObject) error {
 	return err
 }
 
-type Migration struct {
+type CloudSqlMigration struct {
 	Migration string
 	Rollback  string
 }
 
-func (m Migration) TableName() string {
+func (m CloudSqlMigration) TableName() string {
 	return "migrations"
 }
 
-func (m Migration) InsertParameters() map[string]interface{} {
+func (m CloudSqlMigration) InsertParameters() map[string]interface{} {
 	return map[string]interface{}{"migration": m.Migration, "rollback": m.Rollback}
 }
 
-func EnsureMigrations(db *sql.DB, ctx appengine.Context, migrations []Migration) error {
+func CloudSqlEnsureMigrationTable(db *sql.DB) error {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS migrations (id int auto_increment primary key, migration varchar(255), rollback varchar(255));")
+	return err;
+}
+
+func CloudSqlEnsureMigrations(db *sql.DB, migrations []CloudSqlMigration) error {
 	rows, err := db.Query("SELECT id FROM migrations ORDER BY id desc limit 1")
 	if err != nil {
 		return err
@@ -60,14 +64,13 @@ func EnsureMigrations(db *sql.DB, ctx appengine.Context, migrations []Migration)
 
 	for i := lastMigration; i < len(migrations); i++ {
 		m := migrations[i]
-		ctx.Infof("Running Migration: %s", m.Migration)
 
 		_, err := db.Exec(m.Migration)
 		if err != nil {
 			return err
 		}
 
-		err = InsertObject(db, m)
+		err = CloudSqlInsertObject(db, m)
 		if err != nil {
 			return err
 		}
