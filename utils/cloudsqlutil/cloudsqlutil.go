@@ -11,11 +11,11 @@ type SqlObject interface {
 	TableName() string
 }
 
-func CloudSqlDatabase(user, password, projectId, cloudsqlInstance, database string) (*sql.DB, error) {
+func Database(user, password, projectId, cloudsqlInstance, database string) (*sql.DB, error) {
 	return sql.Open("mysql", user+":"+password+"@cloudsql("+projectId+":"+cloudsqlInstance+")/"+database)
 }
 
-func CloudSqlInsertObject(db *sql.DB, obj SqlObject) error {
+func InsertObject(db *sql.DB, obj SqlObject) error {
 	insertParameters := obj.InsertParameters()
 	parameterNames := make([]string, 0, len(insertParameters))
 	parameterValues := make([]interface{}, 0, len(insertParameters))
@@ -32,25 +32,25 @@ func CloudSqlInsertObject(db *sql.DB, obj SqlObject) error {
 	return err
 }
 
-type CloudSqlMigration struct {
+type Migration struct {
 	Migration string
 	Rollback  string
 }
 
-func (m CloudSqlMigration) TableName() string {
+func (m Migration) TableName() string {
 	return "migrations"
 }
 
-func (m CloudSqlMigration) InsertParameters() map[string]interface{} {
+func (m Migration) InsertParameters() map[string]interface{} {
 	return map[string]interface{}{"migration": m.Migration, "rollback": m.Rollback}
 }
 
-func CloudSqlEnsureMigrationTable(db *sql.DB) error {
+func EnsureMigrationTable(db *sql.DB) error {
 	_, err := db.Exec("CREATE TABLE IF NOT EXISTS migrations (id int auto_increment primary key, migration varchar(255), rollback varchar(255));")
 	return err;
 }
 
-func CloudSqlEnsureMigrations(db *sql.DB, migrations []CloudSqlMigration) error {
+func EnsureMigrations(db *sql.DB, migrations []Migration) error {
 	rows, err := db.Query("SELECT id FROM migrations ORDER BY id desc limit 1")
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func CloudSqlEnsureMigrations(db *sql.DB, migrations []CloudSqlMigration) error 
 			return err
 		}
 
-		err = CloudSqlInsertObject(db, m)
+		err = InsertObject(db, m)
 		if err != nil {
 			return err
 		}
