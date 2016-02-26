@@ -6,16 +6,34 @@ import (
 	"strings"
 )
 
+type AppDatabase struct {
+  db *sql.DB
+}
+
+func (db AppDatabase)InsertObject(obj SqlObject) error {
+	return insertObject(db.db, obj)
+}
+
+func (db AppDatabase)EnsureMigrationTable() error {
+	return ensureMigrationTable(db.db);
+}
+
+func (db AppDatabase)EnsureMigrations(migrations []Migration) error {
+	return ensureMigrations(db.db, migrations);
+}
+
 type SqlObject interface {
 	InsertParameters() map[string]interface{}
 	TableName() string
 }
 
-func Database(user, password, projectId, cloudsqlInstance, database string) (*sql.DB, error) {
-	return sql.Open("mysql", user+":"+password+"@cloudsql("+projectId+":"+cloudsqlInstance+")/"+database)
+func Database(user, password, projectId, cloudsqlInstance, database string) (AppDatabase, error) {
+	db, err := sql.Open("mysql", user+":"+password+"@cloudsql("+projectId+":"+cloudsqlInstance+")/"+database)
+	adb := AppDatabase{db: db}
+	return adb, err;
 }
 
-func InsertObject(db *sql.DB, obj SqlObject) error {
+func insertObject(db *sql.DB, obj SqlObject) error {
 	insertParameters := obj.InsertParameters()
 	parameterNames := make([]string, 0, len(insertParameters))
 	parameterValues := make([]interface{}, 0, len(insertParameters))
@@ -45,12 +63,12 @@ func (m Migration) InsertParameters() map[string]interface{} {
 	return map[string]interface{}{"migration": m.Migration, "rollback": m.Rollback}
 }
 
-func EnsureMigrationTable(db *sql.DB) error {
+func ensureMigrationTable(db *sql.DB) error {
 	_, err := db.Exec("CREATE TABLE IF NOT EXISTS migrations (id int auto_increment primary key, migration varchar(255), rollback varchar(255));")
 	return err;
 }
 
-func EnsureMigrations(db *sql.DB, migrations []Migration) error {
+func ensureMigrations(db *sql.DB, migrations []Migration) error {
 	rows, err := db.Query("SELECT id FROM migrations ORDER BY id desc limit 1")
 	if err != nil {
 		return err
@@ -70,7 +88,7 @@ func EnsureMigrations(db *sql.DB, migrations []Migration) error {
 			return err
 		}
 
-		err = InsertObject(db, m)
+		err = insertObject(db, m)
 		if err != nil {
 			return err
 		}

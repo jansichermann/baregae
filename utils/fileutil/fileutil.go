@@ -12,9 +12,13 @@ func WriteFile(filename, mimeType string) func(http.ResponseWriter, *http.Reques
 		} else {
 			defer f.Close()
 			w.Header().Set("Content-Type", mimeType)
-			b := make([]byte, 1024)
-			for n, err := f.Read(b); err == nil && n > 0; n, err = f.Read(b) {
-				w.Write(b[:n])
+			p := make([]byte, 1024)
+			for {
+				n, _ := f.Read(p)
+				if n == 0 {
+					break
+				}
+				w.Write(p[:n])
 			}
 		}
 	}
